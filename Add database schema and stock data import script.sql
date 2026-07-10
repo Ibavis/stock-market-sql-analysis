@@ -118,7 +118,6 @@ SET
         ''
     );
 
--- Przeniesienie danych z tabeli importowej do tabeli docelowej
 INSERT INTO stock_prices (
     company_id,
     price_date,
