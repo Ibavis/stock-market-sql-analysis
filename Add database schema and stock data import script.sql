@@ -1,9 +1,16 @@
+```sql
+-- Tworzenie bazy danych
 CREATE DATABASE IF NOT EXISTS stocks_db
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_polish_ci;
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_polish_ci;
+
+USE stocks_db;
+
+-- Usuwanie istniejących tabel
 DROP TABLE IF EXISTS stock_prices;
 DROP TABLE IF EXISTS companies;
-#Tworzymy tabele z nazwami
+
+-- Tabela przechowująca dane spółek
 CREATE TABLE companies (
     company_id INT AUTO_INCREMENT PRIMARY KEY,
     ticker VARCHAR(20) NOT NULL UNIQUE,
@@ -12,7 +19,7 @@ CREATE TABLE companies (
     exchange_name VARCHAR(50)
 ) ENGINE = InnoDB;
 
-#Importujemy potrzebne dane
+-- Tabela przechowująca historyczne ceny akcji
 CREATE TABLE stock_prices (
     price_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
@@ -33,6 +40,7 @@ CREATE TABLE stock_prices (
         UNIQUE (company_id, price_date)
 ) ENGINE = InnoDB;
 
+-- Dodanie spółki Grupa Kęty
 INSERT INTO companies (
     ticker,
     company_name,
@@ -46,12 +54,11 @@ VALUES (
     'GPW'
 )
 ON DUPLICATE KEY UPDATE
-    company_name = 'Grupa Kęty S.A.',
-    sector = 'Przemysł metalowy',
-    exchange_name = 'GPW';
-    
-USE stocks_db;
+    company_name = VALUES(company_name),
+    sector = VALUES(sector),
+    exchange_name = VALUES(exchange_name);
 
+-- Tabela tymczasowa do importu danych z pliku CSV
 DROP TABLE IF EXISTS stooq_import;
 
 CREATE TABLE stooq_import (
@@ -63,7 +70,7 @@ CREATE TABLE stooq_import (
     volume DECIMAL(24, 8)
 ) ENGINE = InnoDB;
 
-#import danych
+-- Import danych z pliku CSV
 LOAD DATA LOCAL INFILE 'C:/Users/Grzegorz/Desktop/kty_d (1).csv'
 INTO TABLE stooq_import
 CHARACTER SET utf8mb4
@@ -110,7 +117,8 @@ SET
         ),
         ''
     );
-    
+
+-- Przeniesienie danych z tabeli importowej do tabeli docelowej
 INSERT INTO stock_prices (
     company_id,
     price_date,
@@ -138,3 +146,7 @@ ON DUPLICATE KEY UPDATE
     low_price = VALUES(low_price),
     close_price = VALUES(close_price),
     volume = VALUES(volume);
+
+-- Opcjonalne usunięcie tabeli importowej
+DROP TABLE IF EXISTS stooq_import;
+```
