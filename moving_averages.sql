@@ -1,3 +1,5 @@
+
+DROP TABLE IF EXISTS stooq_import;
 SELECT * FROM stock_prices;
 
 USE stocks_db;
