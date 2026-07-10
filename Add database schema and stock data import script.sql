@@ -147,6 +147,4 @@ ON DUPLICATE KEY UPDATE
     close_price = VALUES(close_price),
     volume = VALUES(volume);
 
--- Opcjonalne usunięcie tabeli importowej
-DROP TABLE IF EXISTS stooq_import;
-```
+
