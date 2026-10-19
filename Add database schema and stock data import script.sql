@@ -1,16 +1,14 @@
 ```sql
--- Tworzenie bazy danych
+
 CREATE DATABASE IF NOT EXISTS stocks_db
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_polish_ci;
 
 USE stocks_db;
 
--- Usuwanie istniejących tabel
 DROP TABLE IF EXISTS stock_prices;
 DROP TABLE IF EXISTS companies;
 
--- Tabela przechowująca dane spółek
 CREATE TABLE companies (
     company_id INT AUTO_INCREMENT PRIMARY KEY,
     ticker VARCHAR(20) NOT NULL UNIQUE,
@@ -19,7 +17,7 @@ CREATE TABLE companies (
     exchange_name VARCHAR(50)
 ) ENGINE = InnoDB;
 
--- Tabela przechowująca historyczne ceny akcji
+
 CREATE TABLE stock_prices (
     price_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE stock_prices (
         UNIQUE (company_id, price_date)
 ) ENGINE = InnoDB;
 
--- Dodanie spółki Grupa Kęty
 INSERT INTO companies (
     ticker,
     company_name,
@@ -58,7 +55,7 @@ ON DUPLICATE KEY UPDATE
     sector = VALUES(sector),
     exchange_name = VALUES(exchange_name);
 
--- Tabela tymczasowa do importu danych z pliku CSV
+
 DROP TABLE IF EXISTS stooq_import;
 
 CREATE TABLE stooq_import (
@@ -70,7 +67,6 @@ CREATE TABLE stooq_import (
     volume DECIMAL(24, 8)
 ) ENGINE = InnoDB;
 
--- Import danych z pliku CSV
 LOAD DATA LOCAL INFILE 'C:/Users/Grzegorz/Desktop/kty_d (1).csv'
 INTO TABLE stooq_import
 CHARACTER SET utf8mb4
