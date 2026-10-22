@@ -1,4 +1,3 @@
-```sql
 
 CREATE DATABASE IF NOT EXISTS stocks_db
     CHARACTER SET utf8mb4
