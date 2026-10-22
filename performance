@@ -1,158 +1,123 @@
-MIN(sp.price_date) AS pierwsza_data,
-MAX(sp.price_date) AS ostatnia_data,
+SELECT
+    c.company_id,
+    c.ticker,
+    c.company_name,
 
-COUNT(*) AS liczba_sesji,
+    MIN(sp.price_date) AS pierwsza_data,
+    MAX(sp.price_date) AS ostatnia_data,
 
-ROUND(MIN(sp.low_price), 2) AS najnizsza_cena,
-ROUND(MAX(sp.high_price), 2) AS najwyzsza_cena,
+    COUNT(*) AS liczba_sesji,
 
-ROUND(
-    AVG(sp.volume),
-    2
-) AS sredni_wolumen,
+    ROUND(MIN(sp.low_price), 2) AS najnizsza_cena,
+    ROUND(MAX(sp.high_price), 2) AS najwyzsza_cena,
 
-ROUND(
-    AVG(sp.close_price),
-    2
-) AS srednia_cena_zamkniecia,
+    ROUND(AVG(sp.volume), 2) AS sredni_wolumen,
+    ROUND(AVG(sp.close_price), 2) AS srednia_cena_zamkniecia,
 
-ROUND(
-    MIN(sp.close_price),
-    2
-) AS minimalna_cena_zamkniecia,
+    ROUND(MIN(sp.close_price), 2) AS minimalna_cena_zamkniecia,
+    ROUND(MAX(sp.close_price), 2) AS maksymalna_cena_zamkniecia
 
-ROUND(
-    MAX(sp.close_price),
-    2
-) AS maksymalna_cena_zamkniecia
-FROM companies AS c JOIN stock_prices AS sp ON sp.company_id = c.company_id
+FROM companies AS c
+JOIN stock_prices AS sp
+    ON sp.company_id = c.company_id
 
-GROUP BY c.company_id, c.ticker, c.company_name
-
-WITH ostatnie_dane AS ( SELECT c.company_id, c.ticker, c.company_name, MAX(sp.price_date) AS ostatnia_data FROM companies AS c JOIN stock_prices AS sp ON sp.company_id = c.company_id GROUP BY c.company_id, c.ticker, c.company_name ),
-
-ceny_bazowe AS ( SELECT o.company_id, o.ticker, o.company_name, o.ostatnia_data,
-
-
-    (
-        SELECT sp.close_price
-        FROM stock_prices AS sp
-        WHERE sp.company_id = o.company_id
-          AND sp.price_date = o.ostatnia_data
-    ) AS cena_aktualna,
-
-    (
-        SELECT sp.close_price
-        FROM stock_prices AS sp
-        WHERE sp.company_id = o.company_id
-          AND sp.price_date <= DATE_SUB(
-              o.ostatnia_data,
-              INTERVAL 30 DAY
-          )
-        ORDER BY sp.price_date DESC
-        LIMIT 1
-    ) AS cena_30_dni,
-
-    (
-        SELECT sp.close_price
-        FROM stock_prices AS sp
-        WHERE sp.company_id = o.company_id
-          AND sp.price_date <= DATE_SUB(
-              o.ostatnia_data,
-              INTERVAL 90 DAY
-          )
-        ORDER BY sp.price_date DESC
-        LIMIT 1
-    ) AS cena_90_dni,
-
-    (
-        SELECT sp.close_price
-        FROM stock_prices AS sp
-        WHERE sp.company_id = o.company_id
-          AND sp.price_date <= DATE_SUB(
-              o.ostatnia_data,
-              INTERVAL 365 DAY
-          )
-        ORDER BY sp.price_date DESC
-        LIMIT 1
-    ) AS cena_365_dni
-
-FROM ostatnie_dane AS o
-)
-
-SELECT ticker, company_name, ostatnia_data,
-
-
-ROUND(cena_aktualna, 2) AS ostatnia_cena,
-
-CASE
-    WHEN cena_30_dni IS NOT NULL
-     AND cena_30_dni <> 0
-    THEN ROUND(
-        (cena_aktualna / cena_30_dni - 1) * 100,
-        2
-    )
-    ELSE NULL
-END AS stopa_zwrotu_30_dni_proc,
-
-CASE
-    WHEN cena_90_dni IS NOT NULL
-     AND cena_90_dni <> 0
-    THEN ROUND(
-        (cena_aktualna / cena_90_dni - 1) * 100,
-        2
-    )
-    ELSE NULL
-END AS stopa_zwrotu_90_dni_proc,
-
-CASE
-    WHEN cena_365_dni IS NOT NULL
-     AND cena_365_dni <> 0
-    THEN ROUND(
-        (cena_aktualna / cena_365_dni - 1) * 100,
-        2
-    )
-    ELSE NULL
-END AS stopa_zwrotu_365_dni_proc
-FROM ceny_bazowe ORDER BY ticker;
+GROUP BY
+    c.company_id,
+    c.ticker,
+    c.company_name
 
 ORDER BY c.ticker;
 
-WITH stopy_zwrotu AS ( SELECT sp.company_id, c.ticker, c.company_name, sp.price_date, sp.close_price,
 
+WITH ostatnie_dane AS (
+    SELECT
+        c.company_id,
+        c.ticker,
+        c.company_name,
+        MAX(sp.price_date) AS ostatnia_data
+    FROM companies AS c
+    JOIN stock_prices AS sp
+        ON sp.company_id = c.company_id
+    GROUP BY
+        c.company_id,
+        c.ticker,
+        c.company_name
+),
 
-    LAG(sp.close_price) OVER (
-        PARTITION BY sp.company_id
-        ORDER BY sp.price_date
-    ) AS poprzednia_cena
+ceny_bazowe AS (
+    SELECT
+        o.company_id,
+        o.ticker,
+        o.company_name,
+        o.ostatnia_data,
 
-FROM stock_prices AS sp
-JOIN companies AS c
-    ON c.company_id = sp.company_id
+        (
+            SELECT sp.close_price
+            FROM stock_prices AS sp
+            WHERE sp.company_id = o.company_id
+              AND sp.price_date = o.ostatnia_data
+        ) AS cena_aktualna,
+
+        (
+            SELECT sp.close_price
+            FROM stock_prices AS sp
+            WHERE sp.company_id = o.company_id
+              AND sp.price_date <= DATE_SUB(
+                  o.ostatnia_data, INTERVAL 30 DAY
+              )
+            ORDER BY sp.price_date DESC
+            LIMIT 1
+        ) AS cena_30_dni,
+
+        (
+            SELECT sp.close_price
+            FROM stock_prices AS sp
+            WHERE sp.company_id = o.company_id
+              AND sp.price_date <= DATE_SUB(
+                  o.ostatnia_data, INTERVAL 90 DAY
+              )
+            ORDER BY sp.price_date DESC
+            LIMIT 1
+        ) AS cena_90_dni,
+
+        (
+            SELECT sp.close_price
+            FROM stock_prices AS sp
+            WHERE sp.company_id = o.company_id
+              AND sp.price_date <= DATE_SUB(
+                  o.ostatnia_data, INTERVAL 365 DAY
+              )
+            ORDER BY sp.price_date DESC
+            LIMIT 1
+        ) AS cena_365_dni
+
+    FROM ostatnie_dane AS o
 )
 
-SELECT ticker, company_name,
+SELECT
+    ticker,
+    company_name,
+    ostatnia_data,
 
+    ROUND(cena_aktualna, 2) AS ostatnia_cena,
 
-COUNT(
     CASE
-        WHEN poprzednia_cena > 0
-        THEN 1
-    END
-) AS liczba_obserwacji,
+        WHEN cena_30_dni IS NOT NULL AND cena_30_dni <> 0
+        THEN ROUND((cena_aktualna / cena_30_dni - 1) * 100, 2)
+        ELSE NULL
+    END AS stopa_zwrotu_30_dni_proc,
 
-ROUND(
-    STDDEV_SAMP(
-        CASE
-            WHEN poprzednia_cena > 0
-            THEN (close_price / poprzednia_cena - 1) * 100
-            ELSE NULL
-        END
-    ),
-    4
-) AS zmiennosc_dzienna_proc
-FROM stopy_zwrotu
+    CASE
+        WHEN cena_90_dni IS NOT NULL AND cena_90_dni <> 0
+        THEN ROUND((cena_aktualna / cena_90_dni - 1) * 100, 2)
+        ELSE NULL
+    END AS stopa_zwrotu_90_dni_proc,
 
-GROUP BY company_id, ticker, company_name
+    CASE
+        WHEN cena_365_dni IS NOT NULL AND cena_365_dni <> 0
+        THEN ROUND((cena_aktualna / cena_365_dni - 1) * 100, 2)
+        ELSE NULL
+    END AS stopa_zwrotu_365_dni_proc
 
+FROM ceny_bazowe
 ORDER BY ticker;
